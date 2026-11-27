@@ -47,6 +47,34 @@ public static class ConsoleViews
     }
 
     /// <summary>
+    /// Vypíše údaje dodavatele nebo odběratele pod sebe.
+    /// </summary>
+    public static void PrintParty(Party party)
+    {
+        PrintField("Název", party.Name);
+        PrintField("Adresa", party.Address);
+        PrintField("IČO", party.IcoText());
+        PrintField("DIČ", party.IsVatPayer ? party.Dic : "neplátce DPH");
+
+        if (party.HasAccount())
+        {
+            PrintField("Účet", party.AccountText());
+            PrintField("IBAN", party.IbanText());
+        }
+    }
+
+    /// <summary>
+    /// Jeden řádek „popisek: hodnota“, popisek barevně a zarovnaný.
+    /// </summary>
+    private static void PrintField(string label, string value)
+    {
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.Write($"  {label + ":",-8}");
+        Console.ResetColor();
+        Console.WriteLine(value);
+    }
+
+    /// <summary>
     /// Částka ve tvaru „1 452,00 Kč“.
     /// </summary>
     public static string Money(decimal amount)

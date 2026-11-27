@@ -1,3 +1,5 @@
+using Fakturka.Logic;
+
 namespace Fakturka.Ui;
 
 /// <summary>
@@ -242,6 +244,93 @@ public static class ConsoleUi
         }
 
         return answer == "a" || answer == "ano";
+    }
+
+    // ------------------------------------------------------------
+    // Načítání údajů s kontrolními číslicemi
+    // ------------------------------------------------------------
+
+    /// <summary>
+    /// Načte IČO a ověří jeho kontrolní číslici.
+    /// </summary>
+    /// <param name="allowNone">True: 0 znamená „bez IČO“ (soukromá osoba).</param>
+    public static int ReadIco(string prompt, bool allowNone)
+    {
+        int min = allowNone ? 0 : 1;
+        string rangeError = allowNone
+            ? "Zadejte IČO (nejvýš 8 číslic), nebo 0, když ho odběratel nemá."
+            : "Zadejte IČO (nejvýš 8 číslic).";
+
+        int ico = ReadInt(prompt, min, Validators.MaxIco, rangeError);
+        while (ico != 0 && !Validators.IsValidIco(ico))
+        {
+            PrintError($"IČO {ico:D8} nesedí na kontrolní číslici, nejspíš je v něm překlep.");
+            ico = ReadInt(prompt, min, Validators.MaxIco, rangeError);
+        }
+
+        return ico;
+    }
+
+    /// <summary>
+    /// Načte EAN-13 a ověří jeho kontrolní číslici. 0 znamená „bez EAN“.
+    /// </summary>
+    public static long ReadEan(string prompt)
+    {
+        const string rangeError = "Zadejte kód EAN (13 číslic), nebo 0, když ho produkt nemá.";
+
+        long ean = ReadLong(prompt, 0, Validators.MaxEan, rangeError);
+        while (ean != 0 && !Validators.IsValidEan13(ean))
+        {
+            PrintError($"EAN {ean:D13} nesedí na kontrolní číslici, nejspíš je v něm překlep.");
+            ean = ReadLong(prompt, 0, Validators.MaxEan, rangeError);
+        }
+
+        return ean;
+    }
+
+    /// <summary>
+    /// Načte číslo účtu ve tvaru „19-2000145399/0800“ nebo „2000145399/0800“
+    /// a ověří kontrolní součet. Části vrátí přes out parametry, stejně jako TryParse.
+    /// </summary>
+    public static void ReadAccount(string prompt, out long prefix, out long number, out int bankCode)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string text = ReadLineOrExit();
+
+            // Dvě různé chyby, dvě různé hlášky: špatný tvar zápisu vs. překlep v číslici
+            if (!Validators.TryParseAccount(text, out prefix, out number, out bankCode))
+            {
+                PrintError("Zadejte účet ve tvaru předčíslí-číslo/kód banky, např. 19-2000145399/0800 nebo 2000145399/0800.");
+            }
+            else if (!Validators.IsValidAccount(prefix, number))
+            {
+                PrintError("Číslo účtu nesedí na kontrolní součet, nejspíš je v něm překlep.");
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Načte DIČ ve tvaru CZ a 8 až 10 číslic. Mezery odstraní, malá písmena převede na velká.
+    /// </summary>
+    public static string ReadDic(string prompt)
+    {
+        Console.Write(prompt);
+        string dic = ReadLineOrExit().Replace(" ", "").ToUpper();
+
+        while (!Validators.IsValidDic(dic))
+        {
+            PrintError("Zadejte DIČ ve tvaru CZ a 8 až 10 číslic, např. CZ12345679.");
+            Console.Write(prompt);
+            dic = ReadLineOrExit().Replace(" ", "").ToUpper();
+        }
+
+        return dic;
     }
 
     /// <summary>

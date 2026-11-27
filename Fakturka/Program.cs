@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
 using Fakturka.Models;
+using Fakturka.Output;
 using Fakturka.Ui;
 
 // Fakturka - fakturační nástroj pro malý e-shop
@@ -13,8 +14,28 @@ CultureInfo.CurrentCulture = new CultureInfo("cs-CZ");
 // UTF-8 kvůli diakritice a rámečkům i ve starších konzolích na Windows
 Console.OutputEncoding = Encoding.UTF8;
 
-// Katalog zatím žije jen v paměti, ukládání do souboru přibude v dalším milníku
+// Načtení uložených dat. Při prvním spuštění soubory ještě neexistují a začne se s prázdnými daty.
 Catalog catalog = new Catalog();
+Storage.LoadCatalog(catalog, out string? catalogWarning);
+Party? supplier = Storage.LoadSupplier(out string? supplierWarning);
+
+// Problémy se soubory ukážeme hned po startu, ať uživatel ví, že část dat chybí
+if (supplierWarning != null || catalogWarning != null)
+{
+    ConsoleUi.PrintBanner();
+    ConsoleUi.PrintTitle("Načtení uložených dat");
+    if (supplierWarning != null)
+    {
+        ConsoleUi.PrintError(supplierWarning);
+    }
+
+    if (catalogWarning != null)
+    {
+        ConsoleUi.PrintError(catalogWarning);
+    }
+
+    ConsoleUi.WaitForEnter();
+}
 
 // Hlavní řídicí cyklus: po každé akci se menu ukáže znovu, dokud uživatel nezvolí 0.
 // Tím je splněný požadavek na opakované spuštění bez ukončení programu.
@@ -22,7 +43,7 @@ int choice;
 do
 {
     ConsoleUi.PrintBanner();
-    PrintMainMenu();
+    PrintMainMenu(supplier, catalog);
     choice = ConsoleUi.ReadInt("Zvolte akci (0-6): ", 0, 6);
 
     switch (choice)
@@ -40,7 +61,7 @@ do
             CatalogScreen.Show(catalog);
             break;
         case 5:
-            ShowNotReady("Údaje dodavatele");
+            supplier = SupplierScreen.Show(supplier);
             break;
         case 6:
             ShowNotReady("Ukázkový režim");
@@ -58,17 +79,24 @@ Console.WriteLine("Na shledanou.");
 // ------------------------------------------------------------
 
 // Vypíše hlavní menu. Hotové části mají běžnou barvu textu, rozpracované jsou šedé,
-// aby bylo hned vidět, co už funguje.
-void PrintMainMenu()
+// aby bylo hned vidět, co už funguje. Pod menu je stručný stav dat.
+void PrintMainMenu(Party? currentSupplier, Catalog currentCatalog)
 {
     PrintMenuItem(1, "Vystavit fakturu", false);
     PrintMenuItem(2, "Přehled faktur (hledání, řazení)", false);
     PrintMenuItem(3, "Měsíční přehled tržeb a DPH", false);
     PrintMenuItem(4, "Katalog zboží", true);
-    PrintMenuItem(5, "Údaje dodavatele", false);
+    PrintMenuItem(5, "Údaje dodavatele", true);
     PrintMenuItem(6, "Ukázkový režim (vygenerovaná data)", false);
     Console.WriteLine();
     PrintMenuItem(0, "Konec", true);
+    Console.WriteLine();
+
+    Console.ForegroundColor = ConsoleColor.DarkGray;
+    Console.WriteLine($"  Dodavatel: {(currentSupplier == null ? "zatím nevyplněný (volba 5)" : currentSupplier.Name)}");
+    Console.WriteLine($"  Produktů v katalogu: {currentCatalog.Count}");
+    Console.WriteLine($"  Data: {Storage.DataFolder}");
+    Console.ResetColor();
     Console.WriteLine();
 }
 

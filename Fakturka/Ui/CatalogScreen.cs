@@ -1,19 +1,15 @@
 using Fakturka.Logic;
 using Fakturka.Models;
+using Fakturka.Output;
 
 namespace Fakturka.Ui;
 
 /// <summary>
 /// Obrazovka katalogu zboží: výpis, přidání produktu a změna ceny.
+/// Každá změna se hned uloží do souboru.
 /// </summary>
 public static class CatalogScreen
 {
-    // Logické meze vstupů. Název se na faktuře vypíše celý, v tabulce se případně zkrátí.
-    private const int MaxNameLength = 40;
-    private const decimal MinPrice = 0.01m;
-    private const decimal MaxPrice = 1_000_000m;
-    private const long MaxEan = 9_999_999_999_999;   // největší třináctimístné číslo
-
     /// <summary>
     /// Podmenu katalogu. Běží ve smyčce, dokud uživatel nezvolí návrat (0).
     /// </summary>
@@ -62,20 +58,20 @@ public static class CatalogScreen
             return;
         }
 
-        string name = ConsoleUi.ReadText($"Název (nejvýš {MaxNameLength} znaků): ", MaxNameLength);
+        string name = ConsoleUi.ReadText($"Název (nejvýš {Product.MaxNameLength} znaků): ", Product.MaxNameLength);
 
         // Dva produkty se stejným EAN by se při vystavování faktury nedaly rozlišit.
         // EAN 0 znamená „bez kódu“ a ten mít může produktů víc, proto ho nekontrolujeme.
-        long ean = ReadEan();
+        long ean = ConsoleUi.ReadEan("EAN-13 (0 = produkt bez EAN): ");
         int duplicate = ean == 0 ? -1 : catalog.FindByEan(ean);
         while (duplicate >= 0)
         {
             ConsoleUi.PrintError($"Tento EAN už má produkt „{catalog.Get(duplicate).Name}“.");
-            ean = ReadEan();
+            ean = ConsoleUi.ReadEan("EAN-13 (0 = produkt bez EAN): ");
             duplicate = ean == 0 ? -1 : catalog.FindByEan(ean);
         }
 
-        decimal price = ConsoleUi.ReadDecimal("Cena za 1 ks bez DPH v Kč: ", MinPrice, MaxPrice);
+        decimal price = ConsoleUi.ReadDecimal("Cena za 1 ks bez DPH v Kč: ", Product.MinPrice, Product.MaxPrice);
         decimal vatRate = ReadVatRate();
 
         Product product = new Product(ean, name, price, vatRate);
@@ -98,6 +94,7 @@ public static class CatalogScreen
         else if (catalog.Add(product))
         {
             ConsoleUi.PrintSuccess($"Produkt „{product.Name}“ je v katalogu pod číslem {catalog.Count}.");
+            Save(catalog);
         }
         else
         {
@@ -124,7 +121,7 @@ public static class CatalogScreen
         Product product = catalog.Get(number - 1);
 
         Console.WriteLine($"  {product.Name}: teď {ConsoleViews.Money(product.UnitPrice)} bez DPH");
-        decimal newPrice = ConsoleUi.ReadDecimal("Nová cena za 1 ks bez DPH v Kč: ", MinPrice, MaxPrice);
+        decimal newPrice = ConsoleUi.ReadDecimal("Nová cena za 1 ks bez DPH v Kč: ", Product.MinPrice, Product.MaxPrice);
 
         if (newPrice == product.UnitPrice)
         {
@@ -134,6 +131,7 @@ public static class CatalogScreen
         {
             product.UnitPrice = newPrice;
             ConsoleUi.PrintSuccess("Cena je změněná.");
+            Save(catalog);
         }
         else
         {
@@ -141,16 +139,6 @@ public static class CatalogScreen
         }
 
         ConsoleUi.WaitForEnter();
-    }
-
-    /// <summary>
-    /// Načte EAN: 0 (bez kódu) nebo číslo s nejvýš 13 číslicemi.
-    /// </summary>
-    private static long ReadEan()
-    {
-        // Kontrolní číslice EAN přibude s třídou Validators v dalším milníku
-        return ConsoleUi.ReadLong("EAN-13 (0 = produkt bez EAN): ", 0, MaxEan,
-            "Zadejte kód EAN s nejvýš 13 číslicemi, nebo 0, když ho produkt nemá.");
     }
 
     /// <summary>
@@ -167,5 +155,17 @@ public static class CatalogScreen
 
         int choice = ConsoleUi.ReadInt($"Zvolte sazbu (1-{VatRates.All.Length}): ", 1, VatRates.All.Length);
         return VatRates.All[choice - 1];
+    }
+
+    /// <summary>
+    /// Uloží katalog do souboru. Když se zápis nepovede, změna zůstane aspoň v paměti.
+    /// </summary>
+    private static void Save(Catalog catalog)
+    {
+        if (!Storage.SaveCatalog(catalog, out string? error))
+        {
+            ConsoleUi.PrintError(error ?? "Katalog se nepodařilo uložit.");
+            ConsoleUi.PrintInfo("Změna platí do ukončení programu, ale do souboru se neuložila.");
+        }
     }
 }
