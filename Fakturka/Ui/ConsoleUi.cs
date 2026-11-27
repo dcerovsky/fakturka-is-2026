@@ -31,7 +31,17 @@ public static class ConsoleUi
         Console.WriteLine($"╔{line}╗");
         PrintBannerLine("", ConsoleColor.DarkGray);
         PrintBannerLine("F A K T U R K A", ConsoleColor.DarkYellow);
-        PrintBannerLine("fakturace pro malý e-shop", ConsoleColor.DarkGray);
+
+        // V ukázkovém režimu musí být na každé obrazovce vidět, že data nejsou skutečná
+        if (DemoData.IsActive)
+        {
+            PrintBannerLine($"DEMO - ukázková data, seed {DemoData.Seed}", ConsoleColor.DarkMagenta);
+        }
+        else
+        {
+            PrintBannerLine("fakturace pro malý e-shop", ConsoleColor.DarkGray);
+        }
+
         PrintBannerLine("", ConsoleColor.DarkGray);
         PrintBannerLine("Daniel Čeřovský, IS 2026", ConsoleColor.DarkGray);
         Console.ForegroundColor = ConsoleColor.DarkCyan;
@@ -167,7 +177,8 @@ public static class ConsoleUi
     /// <summary>
     /// Načte celé číslo v rozsahu min až max. Samotný Enter vrátí výchozí hodnotu.
     /// </summary>
-    public static int ReadIntWithDefault(string prompt, int min, int max, int defaultValue)
+    /// <param name="error">Vlastní chybová hláška; bez ní se vypíše obecná s rozsahem a výchozí hodnotou.</param>
+    public static int ReadIntWithDefault(string prompt, int min, int max, int defaultValue, string? error = null)
     {
         while (true)
         {
@@ -184,7 +195,7 @@ public static class ConsoleUi
                 return value;
             }
 
-            PrintError($"Zadejte celé číslo od {min:#,0} do {max:#,0}, nebo jen Enter pro {defaultValue}.");
+            PrintError(error ?? $"Zadejte celé číslo od {min:#,0} do {max:#,0}, nebo jen Enter pro {defaultValue}.");
         }
     }
 

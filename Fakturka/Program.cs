@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using Fakturka.Logic;
 using Fakturka.Models;
 using Fakturka.Output;
 using Fakturka.Ui;
@@ -44,6 +45,11 @@ if (supplierWarning != null || catalogWarning != null || invoicesWarning != null
     ConsoleUi.WaitForEnter();
 }
 
+// Při zapnutí ukázkového režimu se sem odloží skutečná data a při vypnutí se vrátí
+Party? realSupplier = supplier;
+Catalog realCatalog = catalog;
+InvoiceBook realBook = book;
+
 // Hlavní řídicí cyklus: po každé akci se menu ukáže znovu, dokud uživatel nezvolí 0.
 // Tím je splněný požadavek na opakované spuštění bez ukončení programu.
 int choice;
@@ -53,25 +59,50 @@ do
     PrintMainMenu(supplier, catalog, book);
     choice = ConsoleUi.ReadInt("Zvolte akci (0-6): ", 0, 6);
 
+    // Volby 1, 4 a 5 ukládají do souborů, proto v ukázkovém režimu nejsou dostupné
     switch (choice)
     {
         case 1:
-            InvoiceScreen.Show(book, catalog, supplier);
+            if (DemoData.IsActive)
+            {
+                ShowBlockedInDemo("Vystavit fakturu");
+            }
+            else
+            {
+                InvoiceScreen.Show(book, catalog, supplier);
+            }
+
             break;
         case 2:
-            ShowNotReady("Přehled faktur");
+            InvoiceListScreen.Show(book, supplier);
             break;
         case 3:
-            ShowNotReady("Měsíční přehled tržeb a DPH");
+            MonthlyReportScreen.Show(book);
             break;
         case 4:
-            CatalogScreen.Show(catalog);
+            if (DemoData.IsActive)
+            {
+                ShowBlockedInDemo("Katalog zboží");
+            }
+            else
+            {
+                CatalogScreen.Show(catalog);
+            }
+
             break;
         case 5:
-            supplier = SupplierScreen.Show(supplier);
+            if (DemoData.IsActive)
+            {
+                ShowBlockedInDemo("Údaje dodavatele");
+            }
+            else
+            {
+                supplier = SupplierScreen.Show(supplier);
+            }
+
             break;
         case 6:
-            ShowNotReady("Ukázkový režim");
+            ToggleDemo();
             break;
     }
 }
@@ -85,16 +116,17 @@ Console.WriteLine("Na shledanou.");
 // Lokální metody hlavního menu
 // ------------------------------------------------------------
 
-// Vypíše hlavní menu. Hotové části mají běžnou barvu textu, rozpracované jsou šedé,
-// aby bylo hned vidět, co už funguje. Pod menu je stručný stav dat.
+// Vypíše hlavní menu. V ukázkovém režimu jsou volby, které ukládají, šedé.
+// Pod menu je stručný stav dat.
 void PrintMainMenu(Party? currentSupplier, Catalog currentCatalog, InvoiceBook currentBook)
 {
-    PrintMenuItem(1, "Vystavit fakturu", true);
-    PrintMenuItem(2, "Přehled faktur (hledání, řazení)", false);
-    PrintMenuItem(3, "Měsíční přehled tržeb a DPH", false);
-    PrintMenuItem(4, "Katalog zboží", true);
-    PrintMenuItem(5, "Údaje dodavatele", true);
-    PrintMenuItem(6, "Ukázkový režim (vygenerovaná data)", false);
+    bool real = !DemoData.IsActive;
+    PrintMenuItem(1, "Vystavit fakturu", real);
+    PrintMenuItem(2, "Přehled faktur (hledání, řazení)", true);
+    PrintMenuItem(3, "Měsíční přehled tržeb a DPH", true);
+    PrintMenuItem(4, "Katalog zboží", real);
+    PrintMenuItem(5, "Údaje dodavatele", real);
+    PrintMenuItem(6, real ? "Ukázkový režim (vygenerovaná data)" : "Vypnout ukázkový režim", true);
     Console.WriteLine();
     PrintMenuItem(0, "Konec", true);
     Console.WriteLine();
@@ -102,34 +134,56 @@ void PrintMainMenu(Party? currentSupplier, Catalog currentCatalog, InvoiceBook c
     Console.ForegroundColor = ConsoleColor.DarkGray;
     Console.WriteLine($"  Dodavatel: {(currentSupplier == null ? "zatím nevyplněný (volba 5)" : currentSupplier.Name)}");
     Console.WriteLine($"  Produktů v katalogu: {currentCatalog.Count}, vystavených faktur: {currentBook.Count}");
-    Console.WriteLine($"  Data: {Storage.DataFolder}");
+    Console.WriteLine(real
+        ? $"  Data: {Storage.DataFolder}"
+        : $"  Data: ukázková, jen v paměti (seed {DemoData.Seed}), nic se neukládá");
     Console.ResetColor();
     Console.WriteLine();
 }
 
-// Vypíše jednu položku menu
-void PrintMenuItem(int number, string text, bool ready)
+// Vypíše jednu položku menu. Nedostupná položka je šedá s vysvětlením.
+void PrintMenuItem(int number, string text, bool enabled)
 {
-    if (!ready)
+    if (!enabled)
     {
         Console.ForegroundColor = ConsoleColor.DarkGray;
     }
 
     Console.Write($"  {number}  {text}");
-    if (!ready)
+    if (!enabled)
     {
-        Console.Write("  (připravuje se)");
+        Console.Write("  (ne v ukázkovém režimu)");
     }
 
     Console.WriteLine();
     Console.ResetColor();
 }
 
-// Zástupná obrazovka pro části menu, které ještě nejsou naprogramované
-void ShowNotReady(string title)
+// Obrazovka pro volbu, která v ukázkovém režimu není dostupná
+void ShowBlockedInDemo(string title)
 {
     ConsoleUi.PrintBanner();
     ConsoleUi.PrintTitle(title);
-    ConsoleUi.PrintInfo("Tahle část se teprve připravuje.");
+    ConsoleUi.PrintInfo("V ukázkovém režimu se nic nevystavuje ani neukládá.");
+    ConsoleUi.PrintInfo("Ukázkový režim vypnete volbou 6 v hlavním menu.");
     ConsoleUi.WaitForEnter();
+}
+
+// Zapne, nebo vypne ukázkový režim. Skutečná data se při zapnutí odloží stranou
+// a při vypnutí se vrátí, takže se s ukázkovými nikdy nesmíchají.
+void ToggleDemo()
+{
+    if (DemoData.IsActive)
+    {
+        supplier = realSupplier;
+        catalog = realCatalog;
+        book = realBook;
+        DemoData.IsActive = false;
+        return;
+    }
+
+    realSupplier = supplier;
+    realCatalog = catalog;
+    realBook = book;
+    DemoScreen.Start(ref supplier, ref catalog, ref book);
 }

@@ -158,12 +158,31 @@ public static class InvoiceHtml
     }
 
     /// <summary>
-    /// Uloží fakturu do složky faktury vedle ostatních dat jako 2026001.html.
+    /// Složka s HTML fakturami: podsložka faktury vedle ostatních dat. Ukázkové faktury
+    /// jdou do dočasné složky systému, aby se nesmíchaly se skutečnými.
+    /// </summary>
+    public static string Folder()
+    {
+        return DemoData.IsActive
+            ? Path.Combine(Path.GetTempPath(), "Fakturka-ukazka")
+            : Path.Combine(Storage.DataFolder, "faktury");
+    }
+
+    /// <summary>
+    /// Cesta k souboru faktury, např. .../faktury/2026001.html.
+    /// </summary>
+    public static string FilePath(int number)
+    {
+        return Path.Combine(Folder(), $"{number}.html");
+    }
+
+    /// <summary>
+    /// Uloží fakturu jako HTML soubor do složky Folder().
     /// </summary>
     public static bool Save(Invoice invoice, Party supplier, out string path, out string? error)
     {
-        string folder = Path.Combine(Storage.DataFolder, "faktury");
-        path = Path.Combine(folder, $"{invoice.Number}.html");
+        string folder = Folder();
+        path = FilePath(invoice.Number);
 
         try
         {

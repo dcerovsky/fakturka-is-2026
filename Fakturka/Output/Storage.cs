@@ -476,6 +476,14 @@ public static class Storage
     /// </summary>
     private static bool WriteLines(string fileName, string[] lines, out string? error)
     {
+        // Pojistka: ukázková data nesmí přepsat skutečné soubory. Obrazovky, které ukládají,
+        // jsou v ukázkovém režimu zablokované už v menu, tohle je druhá kontrola pro jistotu.
+        if (DemoData.IsActive)
+        {
+            error = "V ukázkovém režimu se nic neukládá.";
+            return false;
+        }
+
         string path = Path.Combine(DataFolder, fileName);
         string tempPath = path + ".tmp";
 
