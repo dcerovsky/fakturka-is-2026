@@ -55,6 +55,9 @@ public class InvoiceBook
         }
     }
 
+    /// <summary>
+    /// Vrátí fakturu podle indexu v poli (od 0).
+    /// </summary>
     public Invoice Get(int index)
     {
         if (index < 0 || index >= Count)

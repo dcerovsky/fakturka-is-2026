@@ -34,6 +34,9 @@ public class Party
         Address = address;
     }
 
+    /// <summary>
+    /// True, když má strana vyplněný bankovní účet (číslo účtu není 0).
+    /// </summary>
     public bool HasAccount()
     {
         return AccountNumber != 0;

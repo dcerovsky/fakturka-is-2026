@@ -6,7 +6,7 @@ namespace Fakturka.Models;
 public class Product
 {
     // Logické meze, které platí pro zadání z klávesnice i pro data načtená ze souboru.
-    // Název se na faktuře vypíše celý, v tabulce katalogu se případně zkrátí.
+    // Název se na HTML faktuře vypíše celý, v tabulkách v konzoli se případně zkrátí.
     public const int MaxNameLength = 40;
     public const decimal MinPrice = 0.01m;
     public const decimal MaxPrice = 1_000_000m;

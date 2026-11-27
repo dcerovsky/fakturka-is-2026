@@ -11,6 +11,9 @@ public static class MonthlyReportScreen
     private const int MinYear = 2000;
     private const int MaxYear = 2099;
 
+    /// <summary>
+    /// Zeptá se na rok a vypíše měsíční tabulku a graf tržeb.
+    /// </summary>
     public static void Show(InvoiceBook book)
     {
         ConsoleUi.PrintBanner();
