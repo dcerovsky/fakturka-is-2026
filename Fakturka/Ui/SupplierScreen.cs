@@ -8,8 +8,8 @@ namespace Fakturka.Ui;
 /// </summary>
 public static class SupplierScreen
 {
-    private const int MaxNameLength = 60;
-    private const int MaxAddressLength = 80;
+    private const int MaxNameLength = Storage.MaxPartyNameLength;
+    private const int MaxAddressLength = Storage.MaxAddressLength;
 
     /// <summary>
     /// Ukáže údaje dodavatele a nabídne jejich úpravu. Vrátí aktuální údaje
@@ -29,7 +29,7 @@ public static class SupplierScreen
             }
             else
             {
-                ConsoleViews.PrintParty(supplier);
+                ConsoleViews.PrintParty(supplier, true);
             }
 
             Console.WriteLine();
@@ -77,7 +77,7 @@ public static class SupplierScreen
         // Rekapitulace i s vypočteným IBAN, aby uživatel zkontroloval, co se uloží
         Console.WriteLine();
         Console.WriteLine("  ==================================");
-        ConsoleViews.PrintParty(supplier);
+        ConsoleViews.PrintParty(supplier, true);
         Console.WriteLine("  ==================================");
         Console.WriteLine();
 

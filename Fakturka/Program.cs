@@ -18,9 +18,11 @@ Console.OutputEncoding = Encoding.UTF8;
 Catalog catalog = new Catalog();
 Storage.LoadCatalog(catalog, out string? catalogWarning);
 Party? supplier = Storage.LoadSupplier(out string? supplierWarning);
+InvoiceBook book = new InvoiceBook();
+Storage.LoadInvoices(book, out string? invoicesWarning);
 
 // Problémy se soubory ukážeme hned po startu, ať uživatel ví, že část dat chybí
-if (supplierWarning != null || catalogWarning != null)
+if (supplierWarning != null || catalogWarning != null || invoicesWarning != null)
 {
     ConsoleUi.PrintBanner();
     ConsoleUi.PrintTitle("Načtení uložených dat");
@@ -34,6 +36,11 @@ if (supplierWarning != null || catalogWarning != null)
         ConsoleUi.PrintError(catalogWarning);
     }
 
+    if (invoicesWarning != null)
+    {
+        ConsoleUi.PrintError(invoicesWarning);
+    }
+
     ConsoleUi.WaitForEnter();
 }
 
@@ -43,13 +50,13 @@ int choice;
 do
 {
     ConsoleUi.PrintBanner();
-    PrintMainMenu(supplier, catalog);
+    PrintMainMenu(supplier, catalog, book);
     choice = ConsoleUi.ReadInt("Zvolte akci (0-6): ", 0, 6);
 
     switch (choice)
     {
         case 1:
-            ShowNotReady("Vystavit fakturu");
+            InvoiceScreen.Show(book, catalog, supplier);
             break;
         case 2:
             ShowNotReady("Přehled faktur");
@@ -80,9 +87,9 @@ Console.WriteLine("Na shledanou.");
 
 // Vypíše hlavní menu. Hotové části mají běžnou barvu textu, rozpracované jsou šedé,
 // aby bylo hned vidět, co už funguje. Pod menu je stručný stav dat.
-void PrintMainMenu(Party? currentSupplier, Catalog currentCatalog)
+void PrintMainMenu(Party? currentSupplier, Catalog currentCatalog, InvoiceBook currentBook)
 {
-    PrintMenuItem(1, "Vystavit fakturu", false);
+    PrintMenuItem(1, "Vystavit fakturu", true);
     PrintMenuItem(2, "Přehled faktur (hledání, řazení)", false);
     PrintMenuItem(3, "Měsíční přehled tržeb a DPH", false);
     PrintMenuItem(4, "Katalog zboží", true);
@@ -94,7 +101,7 @@ void PrintMainMenu(Party? currentSupplier, Catalog currentCatalog)
 
     Console.ForegroundColor = ConsoleColor.DarkGray;
     Console.WriteLine($"  Dodavatel: {(currentSupplier == null ? "zatím nevyplněný (volba 5)" : currentSupplier.Name)}");
-    Console.WriteLine($"  Produktů v katalogu: {currentCatalog.Count}");
+    Console.WriteLine($"  Produktů v katalogu: {currentCatalog.Count}, vystavených faktur: {currentBook.Count}");
     Console.WriteLine($"  Data: {Storage.DataFolder}");
     Console.ResetColor();
     Console.WriteLine();

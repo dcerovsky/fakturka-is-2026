@@ -165,6 +165,30 @@ public static class ConsoleUi
     }
 
     /// <summary>
+    /// Načte celé číslo v rozsahu min až max. Samotný Enter vrátí výchozí hodnotu.
+    /// </summary>
+    public static int ReadIntWithDefault(string prompt, int min, int max, int defaultValue)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string text = ReadLineOrExit().Trim();
+
+            if (text.Length == 0)
+            {
+                return defaultValue;
+            }
+
+            if (int.TryParse(text, out int value) && value >= min && value <= max)
+            {
+                return value;
+            }
+
+            PrintError($"Zadejte celé číslo od {min:#,0} do {max:#,0}, nebo jen Enter pro {defaultValue}.");
+        }
+    }
+
+    /// <summary>
     /// Načte velké celé číslo (EAN, číslo účtu) v rozsahu min až max.
     /// </summary>
     public static long ReadLong(string prompt, long min, long max, string? error = null)
@@ -318,12 +342,13 @@ public static class ConsoleUi
     /// <summary>
     /// Načte DIČ ve tvaru CZ a 8 až 10 číslic. Mezery odstraní, malá písmena převede na velká.
     /// </summary>
-    public static string ReadDic(string prompt)
+    /// <param name="allowEmpty">True: samotný Enter znamená „bez DIČ“ a vrátí prázdný text.</param>
+    public static string ReadDic(string prompt, bool allowEmpty = false)
     {
         Console.Write(prompt);
         string dic = ReadLineOrExit().Replace(" ", "").ToUpper();
 
-        while (!Validators.IsValidDic(dic))
+        while (!(allowEmpty && dic.Length == 0) && !Validators.IsValidDic(dic))
         {
             PrintError("Zadejte DIČ ve tvaru CZ a 8 až 10 číslic, např. CZ12345679.");
             Console.Write(prompt);

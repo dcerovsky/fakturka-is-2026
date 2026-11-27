@@ -11,18 +11,26 @@ public static class VatRates
     public static readonly string[] Names = { "základní", "snížená" };
 
     /// <summary>
-    /// True, když je sazba jednou z platných (kontrola dat načtených ze souboru).
+    /// Pozice sazby v poli All, nebo -1, když taková sazba neplatí.
     /// </summary>
-    public static bool IsKnown(decimal rate)
+    public static int IndexOf(decimal rate)
     {
         for (int i = 0; i < All.Length; i++)
         {
             if (All[i] == rate)
             {
-                return true;
+                return i;
             }
         }
 
-        return false;
+        return -1;
+    }
+
+    /// <summary>
+    /// True, když je sazba jednou z platných (kontrola dat načtených ze souboru).
+    /// </summary>
+    public static bool IsKnown(decimal rate)
+    {
+        return IndexOf(rate) >= 0;
     }
 }
